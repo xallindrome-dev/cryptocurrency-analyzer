@@ -1,0 +1,366 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <style>
+        td:nth-child(4) {
+            font-weight: bold;
+        }
+    </style>
+
+    <script src="jquery-3.2.1.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+    <script src="underscore.min.js"></script>
+</head>
+
+<body>
+    <main class="container-fluid">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">Affordable Coins</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="#penny">Penny Coins<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#change">Change Coins</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#expensive">Expensive Coins</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <br/>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="row">
+                        <p class="h2 col-md-6">Penny Coins</p>
+                        <input type="search" name="pennySearch" id="penny-search" class="form-control col-md-6" placeholder="Search here">
+                        <div class="table-responsive" id="penny">
+                            <table class="table table-striped table-hover table-sm">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Symbol</th>
+                                        <th>Market Cap</th>
+                                        <th>Price</th>
+                                        <th>% 24hr Change</th>
+                                        <th>Total Supply</th>
+                                        <th>Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <p class="h2 col-md-6">Change Coins</p>
+                        <input type="search" name="changeSearch" id="change-search" class="form-control col-md-6" placeholder="Search here">
+                        <div class="table-responsive" id="change">
+                            <table class="table table-striped table-hover table-sm">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Symbol</th>
+                                        <th>Market Cap</th>
+                                        <th>Price</th>
+                                        <th>% 24hr Change</th>
+                                        <th>Total Supply</th>
+                                        <th>Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <p class="h2 col-md-6">Expensive Coins</p>
+                        <input type="search" name="expensiveSearch" id="expensive-search" class="form-control col-md-6" placeholder="Search here">
+                        <div class="table-responsive expensive" id="expensive">
+                            <table class="table table-striped table-hover table-sm">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Symbol</th>
+                                        <th>Market Cap</th>
+                                        <th>Price</th>
+                                        <th>% 24hr Change</th>
+                                        <th>Total Supply</th>
+                                        <th>Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        Number.prototype.formatMoney = function (c, d, t) {
+            var n = this,
+                c = isNaN(c = Math.abs(c)) ? 2 : c,
+                d = d == undefined ? "." : d,
+                t = t == undefined ? "," : t,
+                s = n < 0 ? "-" : "",
+                i = String(parseInt(n = Math.abs(Number(n) || 0).toFixed(c))),
+                j = (j = i.length) > 3 ? j % 3 : 0;
+            return s + (j ? i.substr(0, j) + t : "") + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + t) + (c ? d + Math.abs(n - i).toFixed(c).slice(2) : "");
+        };
+
+        (function () {
+            var baseCoinMarketCapUrl = "https://coinmarketcap.com/currencies/";
+            var pennyCoins;
+            var expensiveCoins;
+            var changeCoins;
+
+            var tokens = [
+                "<pri",
+                ">pri",
+                "<ch",
+                ">ch",
+                "<sup",
+                ">sup",
+                "<vol",
+                ">vol",
+                "!green",
+                "!red"
+            ];
+
+            $(document).ready(function () {
+                $.ajax({
+                    url: "https://api.coinmarketcap.com/v1/ticker/?limit=0",
+                    method: "GET",
+                    success: function (data) {
+                        if (data) {
+                            var coins = data;
+
+                            var smallMarketCap = _.filter(coins, function (coin) {
+                                var volume = parseFloat(coin["24h_volume_usd"]);
+
+                                return coin.market_cap_usd < 100000000 && coin.market_cap_usd > 1000000 && !isNaN(volume) && volume > 0;
+                            });
+
+                            var cheapCoins = _.filter(smallMarketCap, function (coin) {
+                                return coin.price_usd <= 1;
+                            });
+
+                            expensiveCoins = _.filter(smallMarketCap, function (coin) {
+                                return coin.price_usd > 1;
+                            });
+
+                            pennyCoins = _.filter(cheapCoins, function (coin) {
+                                return coin.price_usd < 0.10;
+                            });
+
+                            changeCoins = _.filter(cheapCoins, function (coin) {
+                                return coin.price_usd >= 0.10;
+                            });
+
+                            expensiveCoins = _.sortBy(expensiveCoins, function (coin) {
+                                return parseFloat(coin.market_cap_usd);
+                            }).reverse();
+
+                            pennyCoins = _.sortBy(pennyCoins, function (coin) {
+                                return parseFloat(coin.market_cap_usd);
+                            }).reverse();
+
+                            changeCoins = _.sortBy(changeCoins, function (coin) {
+                                return parseFloat(coin.market_cap_usd);
+                            }).reverse();
+
+                            populateTable("#expensive", expensiveCoins);
+                            populateTable("#penny", pennyCoins);
+                            populateTable("#change", changeCoins);
+                        }
+                    },
+                    error: function (err) {
+                        console.log(err);
+                    }
+                });
+
+                $("#penny-search").on("change paste keyup", search);
+                $("#expensive-search").on("change paste keyup", search);
+                $("#change-search").on("change paste keyup", search);
+            });
+
+            function search() {
+                var s = $(this);
+                var value = s.val().toLowerCase();
+                var rows = s.siblings(".table-responsive").find("tbody tr");
+                var hasToken = false;
+
+                if (value.indexOf(" ") > -1 || tokens.indexOf(value) > -1) {
+                    var values = value.split(" ");
+                    var t = values[0];
+                    var val = values[1];
+
+                    var tokenIndex = tokens.indexOf(t);
+                    if (tokenIndex > -1) {
+                        hasToken = true;
+                        var token = tokens[tokenIndex];
+                        switch (token) {
+                            case "<pri":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(4)").text();
+                                    var num = parseFloat(text);
+
+                                    return num > val;
+                                }).hide();
+                                break;
+                            case ">pri":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(4)").text();
+                                    var num = parseFloat(text);
+
+                                    return num < val;
+                                }).hide();
+                                break;
+                            case "<ch":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(5)").text();
+                                    var num = parseFloat(text);
+
+                                    return num > val;
+                                }).hide();
+                                break;
+                            case ">ch":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(5)").text();
+                                    var num = parseFloat(text);
+
+                                    return num < val;
+                                }).hide();
+                                break;
+                            case "<sup":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(6)").text().replace(/[^0-9]/, '');
+                                    var num = parseFloat(text);
+
+                                    return num > val;
+                                }).hide();
+                                break;
+                            case ">sup":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(6)").text().replace(/[^0-9]/, '');
+                                    var num = parseFloat(text);
+
+                                    return num < val;
+                                }).hide();
+                                break;
+                            case "<vol":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(7)").text().replace(/[^0-9]/, '');
+                                    var num = parseFloat(text);
+
+                                    return num > val;
+                                }).hide();
+                                break;
+                            case ">vol":
+                                rows.show().filter(function () {
+                                    var text = $(this).find("td:nth-child(7)").text().replace(/[^0-9]/, '');
+                                    var num = parseFloat(text);
+
+                                    return num < val;
+                                }).hide();
+                                break;
+                            case "!green":
+                                rows.show().filter(function () {
+                                    var row = $(this);
+
+                                    return row.hasClass("table-success");
+                                }).hide();
+                                break;
+                            case "!red":
+                                rows.show().filter(function () {
+                                    var row = $(this);
+
+                                    return row.hasClass("table-danger");
+                                }).hide();
+                                break;
+                        }
+                    }
+                }
+
+                if (!hasToken) {
+                    rows.show().filter(function () {
+                        var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
+                        return !~text.indexOf(value);
+                    }).hide();
+                }
+            }
+
+            function populateTable(table, coins) {
+                var tableBody = $(table).find("tbody");
+                var temp = $("<div />");
+
+                for (var index = 0; index < coins.length; index++) {
+                    var element = coins[index];
+                    var row = $("<tr />");
+
+                    var percentChange = parseFloat(element.percent_change_24h);
+
+                    if (percentChange > 0) {
+                        row.addClass("table-success");
+                    } else {
+                        row.addClass("table-danger");
+                    }
+
+                    var nameAnchor = $("<a />")
+                        .attr("href", baseCoinMarketCapUrl + element.name)
+                        .text(element.name)
+                        .attr("target", "_blank");
+
+                    var maxSupply = element.max_supply || element.total_supply;
+                    maxSupply = parseFloat(maxSupply).formatMoney(0, ".", ",");
+
+                    var usdVolume = parseFloat(element["24h_volume_usd"]);
+
+                    if (usdVolume < 1) {
+                        usdVolume = usdVolume.formatMoney(2, ".", ",");
+                    } else {
+                        usdVolume = usdVolume.formatMoney(0, ".", ",");
+                    }
+
+                    var name = $("<td />").html(nameAnchor);
+                    var symbol = $("<td />").text(element.symbol);
+                    var cap = $("<td />").text(parseFloat(element.market_cap_usd).formatMoney(0, ".", ","));
+                    var price = $("<td />").text(parseFloat(element.price_usd).formatMoney(5, ".", ","));
+                    var change = $("<td />").text(percentChange);
+                    var supply = $("<td />").text(maxSupply);
+                    var volume = $("<td />").text(usdVolume);
+
+                    row
+                        .append(name)
+                        .append(symbol)
+                        .append(cap)
+                        .append(price)
+                        .append(change)
+                        .append(supply)
+                        .append(volume);
+                    temp.append(row);
+                }
+
+                tableBody.html(temp.html());
+            }
+        })();
+    </script>
+</body>
+
+</html>
